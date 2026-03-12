@@ -28,8 +28,8 @@ F1Project/
 ├── backend/
 │   ├── main.py           # ✅ FastAPI app entry point
 │   ├── models/           # SQLModel ORM classes
-│   ├── api/              # API route definitions
-│   ├── crud/             # DB access logic
+│   ├── router/              # API route definitions
+│   ├── service/             # DB access logic
 │   ├── db/               # DB definitions and utilities (engine, sessions, populators)
 │   ├── schemas/          # Pydantic models for request/response
 │   ├── utils/            # Utility files

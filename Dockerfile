@@ -1,16 +1,18 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY ./backend/requirements.txt /app/requirements.txt
-COPY ./static/favicon.ico /app/static/favicon.ico
-
-# Install system dependencies and then Python dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y build-essential libpq-dev && \
-    pip install --no-cache-dir -r /app/requirements.txt && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the rest of backend application
+# Install Poetry and dependencies
+RUN pip install --no-cache-dir poetry
+COPY pyproject.toml poetry.lock /app/
+RUN poetry config virtualenvs.create false && \
+    poetry install --only main --no-interaction --no-ansi
+
+COPY ./static/favicon.ico /app/static/favicon.ico
 COPY ./backend /app/backend
 
 EXPOSE 8000

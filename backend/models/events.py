@@ -1,14 +1,19 @@
-from sqlmodel import SQLModel, Field
+from datetime import datetime
+from typing import ClassVar
 
-"""
-Database model that represents an Event in formula 1 (A grand prix weekend or testing weekend).
-"""
+from sqlalchemy import UniqueConstraint
+from sqlmodel import Field, SQLModel
+
 
 class Event(SQLModel, table=True):
-    meeting_key: int = Field(primary_key=True)
-    circuit_key: int
+    __table_args__: ClassVar = (UniqueConstraint("round_number", "year", name="uq_event_round_year"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    round_number: int
+    country: str
     location: str
-    country_name: str
-    circuit_name: str
-    meeting_official_name: str
+    official_event_name: str
+    event_name: str
+    event_date: datetime
+    event_format: str
     year: int = Field(index=True)

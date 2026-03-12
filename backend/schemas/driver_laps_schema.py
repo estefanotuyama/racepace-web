@@ -1,24 +1,24 @@
-from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-"""
-This is a response model used by the application so that we can correctly return all
-laps a driver completed in a session.
-"""
 
 class LapRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     lap_number: int
-    time: float
-    speed_trap: int
+    time: float | None = None
+    speed_trap: float | None = None
     is_pit_out_lap: bool
-    compound: str
+    compound: str | None = None
+
 
 class DriverLapsRead(BaseModel):
-    driver_number: int
+    model_config = ConfigDict(from_attributes=True)
+
+    driver_number: str
+    abbreviation: str
     first_name: str
     last_name: str
-    team: str
+    team_name: str
+    team_color: str
     headshot_url: str
-    laps: List[LapRead]
-    class Config:
-        orm_mode = True
+    laps: list[LapRead]

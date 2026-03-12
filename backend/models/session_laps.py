@@ -1,21 +1,34 @@
-from typing import Optional
+from typing import ClassVar
 
 from sqlalchemy import UniqueConstraint
-from sqlmodel import SQLModel, Field
+from sqlmodel import Field, SQLModel
 
-"""
-Database model that represents a Lap a driver completed in a session.
-"""
 
 class SessionLaps(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    driver_id: int = Field(index=True, foreign_key="driver.id")
-    session_key: int = Field(index=True, foreign_key="f1session.session_key")
+    __table_args__: ClassVar = (UniqueConstraint("session_id", "driver_id", "lap_number", name="uq_lap"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    session_id: int = Field(foreign_key="f1session.id", index=True)
+    driver_id: int = Field(foreign_key="driver.id", index=True)
+    driver_abbreviation: str
+    driver_number: str
     lap_number: int
-    is_pit_out_lap: bool
-    lap_time: float = Field(default=0.0, nullable=True)
-    st_speed: int = Field(default=0, nullable=True)
-    compound: Optional[str] = Field(default=None, nullable=True)
-    __table_args__ = (
-        UniqueConstraint("driver_id", "session_key", "lap_number",name="uq_lap"),
-    )
+    lap_time: float | None = Field(default=None)
+    stint: int = Field(default=0)
+    pit_out_time: float | None = Field(default=None)
+    pit_in_time: float | None = Field(default=None)
+    sector1_time: float | None = Field(default=None)
+    sector2_time: float | None = Field(default=None)
+    sector3_time: float | None = Field(default=None)
+    speed_i1: float | None = Field(default=None)
+    speed_i2: float | None = Field(default=None)
+    speed_fl: float | None = Field(default=None)
+    speed_st: float | None = Field(default=None)
+    is_personal_best: bool = Field(default=False)
+    compound: str | None = Field(default=None)
+    tyre_life: float | None = Field(default=None)
+    fresh_tyre: bool | None = Field(default=None)
+    track_status: str = Field(default="")
+    position: float | None = Field(default=None)
+    deleted: bool | None = Field(default=None)
+    is_accurate: bool = Field(default=True)

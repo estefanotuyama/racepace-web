@@ -65,7 +65,7 @@ function App() {
 						{selectedSession && (
 							<div className="panel">
 								<h2 className="panel-header">
-									Drivers in {selectedEvent?.circuit_name}, {selectedEvent?.country_name} {selectedYear}{" "}
+									Drivers in {selectedEvent?.location}, {selectedEvent?.country} {selectedYear}{" "}
 									{selectedSession.session_name}
 									<p>Select drivers to view and compare lap times</p>
 								</h2>
@@ -122,4 +122,3 @@ function App() {
 }
 
 export default App
-

@@ -1,13 +1,19 @@
-from sqlmodel import SQLModel, Field
+from datetime import datetime
+from typing import ClassVar
 
-"""
-Database model that represents a formula 1 session (practice, qualifying, race)
-"""
+from sqlalchemy import UniqueConstraint
+from sqlmodel import Field, SQLModel
+
 
 class F1Session(SQLModel, table=True):
-    location: str
-    meeting_key: int = Field(index=True, foreign_key="event.meeting_key")
-    session_key: int = Field(index=True, primary_key=True)
-    session_type: str
+    __table_args__: ClassVar = (
+        UniqueConstraint("session_name", "round_number", "year", name="uq_session_name_round_year"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
     session_name: str
-    date: str
+    date: datetime
+    round_number: int
+    year: int
+    f1_api_support: bool
+    event_id: int = Field(foreign_key="event.id", index=True)

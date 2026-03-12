@@ -102,12 +102,12 @@ export const useF1Data = () => {
 		}
 	}
 
-	const fetchSessions = async (meetingKey: number) => {
+	const fetchSessions = async (year: number, roundNumber: number) => {
 		setLoading((prev) => ({ ...prev, sessions: true }))
 		setErrors((prev) => ({ ...prev, sessions: "" }))
 
 		try {
-			const response = await fetch(`${API_BASE_URL}/sessions/${meetingKey}`)
+			const response = await fetch(`${API_BASE_URL}/sessions/${year}/${roundNumber}`)
 			if (!response.ok) throw new Error("Failed to fetch sessions")
 
 			const data = await response.json()
@@ -122,12 +122,12 @@ export const useF1Data = () => {
 		}
 	}
 
-	const fetchDrivers = async (sessionKey: number) => {
+	const fetchDrivers = async (year: number, roundNumber: number, sessionName: string) => {
 		setLoading((prev) => ({ ...prev, drivers: true }))
 		setErrors((prev) => ({ ...prev, drivers: "" }))
 
 		try {
-			const response = await fetch(`${API_BASE_URL}/drivers/${sessionKey}`)
+			const response = await fetch(`${API_BASE_URL}/drivers/${year}/${roundNumber}/${encodeURIComponent(sessionName)}`)
 			if (!response.ok) throw new Error("Failed to fetch drivers")
 
 			const data = await response.json()
@@ -142,12 +142,12 @@ export const useF1Data = () => {
 		}
 	}
 
-	const fetchDriverLaps = async (sessionKey: number, driverNumber: number) => {
+	const fetchDriverLaps = async (year: number, roundNumber: number, sessionName: string, driverAbbreviation: string) => {
 		setLoading((prev) => ({ ...prev, laps: true }))
 		setErrors((prev) => ({ ...prev, laps: "" }))
 
 		try {
-			const response = await fetch(`${API_BASE_URL}/laps/${sessionKey}/${driverNumber}`)
+			const response = await fetch(`${API_BASE_URL}/laps/${year}/${roundNumber}/${encodeURIComponent(sessionName)}/${encodeURIComponent(driverAbbreviation)}`)
 			if (!response.ok) throw new Error("Failed to fetch lap data")
 
 			const data = await response.json()
@@ -157,7 +157,7 @@ export const useF1Data = () => {
 
 			setDriverLaps((prev) => ({
 				...prev,
-				[driverNumber]: data,
+				[driverAbbreviation]: data,
 			}))
 		} catch (error) {
 			setErrors((prev) => ({ ...prev, laps: "Failed to load lap data" }))
@@ -166,12 +166,12 @@ export const useF1Data = () => {
 		}
 	}
 
-	const fetchSessionResult = async (sessionKey: number) => {
+	const fetchSessionResult = async (year: number, roundNumber: number, sessionName: string) => {
 		setLoading((prev) => ({ ...prev, sessionResult: true }))
 		setErrors((prev) => ({ ...prev, sessionResult: "" }))
 
 		try {
-			const response = await fetch(`${API_BASE_URL}/session_result/${sessionKey}`)
+			const response = await fetch(`${API_BASE_URL}/session_result/${year}/${roundNumber}/${encodeURIComponent(sessionName)}`)
 			if (!response.ok) throw new Error("Failed to retrieve session result.")
 
 			const data = await response.json()
@@ -206,7 +206,9 @@ export const useF1Data = () => {
 		setSessions([])
 		setDrivers([])
 		setDriverLaps({})
-		fetchSessions(event.meeting_key)
+		if (selectedYear) {
+			fetchSessions(selectedYear, event.round_number)
+		}
 	}
 
 	const handleSessionChange = (session: F1Session) => {
@@ -215,8 +217,10 @@ export const useF1Data = () => {
 		setDrivers([])
 		setDriverLaps({})
 
-		fetchDrivers(session.session_key)
-		fetchSessionResult(session.session_key)
+		if (selectedYear && selectedEvent) {
+			fetchDrivers(selectedYear, selectedEvent.round_number, session.session_name)
+			fetchSessionResult(selectedYear, selectedEvent.round_number, session.session_name)
+		}
 	}
 
 	const handleDriverClick = (driver: Driver) => {
@@ -227,24 +231,24 @@ export const useF1Data = () => {
 				const newSelection = prev.filter((d) => d.driver_number !== driver.driver_number)
 				setDriverLaps((prevLaps) => {
 					const newLaps = { ...prevLaps }
-					delete newLaps[driver.driver_number]
+					delete newLaps[driver.abbreviation]
 					return newLaps
 				})
 				return newSelection
 			} else if (prev.length < 2) {
-				if (selectedSession) {
-					fetchDriverLaps(selectedSession.session_key, driver.driver_number)
+				if (selectedSession && selectedYear && selectedEvent) {
+					fetchDriverLaps(selectedYear, selectedEvent.round_number, selectedSession.session_name, driver.abbreviation)
 				}
 				return [...prev, driver]
 			} else {
 				const oldestDriver = prev[0]
 				setDriverLaps((prevLaps) => {
 					const newLaps = { ...prevLaps }
-					delete newLaps[oldestDriver.driver_number]
+					delete newLaps[oldestDriver.abbreviation]
 					return newLaps
 				})
-				if (selectedSession) {
-					fetchDriverLaps(selectedSession.session_key, driver.driver_number)
+				if (selectedSession && selectedYear && selectedEvent) {
+					fetchDriverLaps(selectedYear, selectedEvent.round_number, selectedSession.session_name, driver.abbreviation)
 				}
 				return [prev[1], driver]
 			}

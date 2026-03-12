@@ -1,8 +1,10 @@
 from fastapi.testclient import TestClient
+
 from backend.main import app
 
 client = TestClient(app)
-SESSION_KEY = 9519 # MONACO 2024 QUALIFYING SESSION
+SESSION_KEY = 9519  # MONACO 2024 QUALIFYING SESSION
+
 
 def test_get_drivers_in_session():
     response = client.get(f"/drivers/{SESSION_KEY}")
@@ -11,4 +13,6 @@ def test_get_drivers_in_session():
 
     print(f"Drivers in session {SESSION_KEY}: ")
     for driver in data:
-        print(f"Name: {driver['first_name']} {driver['last_name']} -> Number: {driver['number']} -> Team: {driver['team']}")
+        print(
+            f"Name: {driver['first_name']} {driver['last_name']} -> Number: {driver['number']} -> Team: {driver['team']}"
+        )

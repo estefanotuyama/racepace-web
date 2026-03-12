@@ -1,9 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
 
 class DriverSessionInfo(BaseModel):
-    driver_number: int
-    team: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+    driver_number: str
+    abbreviation: str
     first_name: str
     last_name: str
-    name_acronym: str
+    full_name: str
     headshot_url: str
+    team_name: str
+    team_color: str

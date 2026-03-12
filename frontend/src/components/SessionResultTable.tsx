@@ -1,5 +1,5 @@
 import { SessionResultData } from "../types"
-import { formatTime, solveDriverStatus } from "../utils"
+import { formatTime } from "../utils"
 
 interface SessionResultProps {
 	sessionResult: SessionResultData | null
@@ -37,9 +37,9 @@ export const SessionResultTable = ({ sessionResult, loading, error }: SessionRes
 						<tr key={driver.position}>
 							<td>{driver.position}</td>
 							<td>{`${driver.last_name}`}</td>
-							<td>{driver.team}</td>
+							<td>{driver.team_name}</td>
 							<td>{formatTime(driver)}</td>
-							<td>{solveDriverStatus(driver)}</td>
+							<td>{driver.laps ?? 0}</td>
 						</tr>
 					))}
 				</tbody>

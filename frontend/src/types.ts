@@ -1,61 +1,72 @@
 // Types based on API models
 export interface Event {
-	meeting_key: number
-	circuit_key: number
+	id: number
+	round_number: number
+	country: string
 	location: string
-	country_name: string
-	circuit_name: string
-	meeting_official_name: string
+	official_event_name: string
+	event_name: string
+	event_date: string
+	event_format: string
 	year: number
 }
 
 export interface F1Session {
-	location: string
-	meeting_key: number
-	session_key: number
-	session_type: string
+	id: number
 	session_name: string
 	date: string
+	round_number: number
+	year: number
+	f1_api_support: boolean
+	event_id: number
 }
 
 export interface Driver {
-	session_key: number
+	driver_number: string
+	abbreviation: string
 	first_name: string
 	last_name: string
-	name_acronym: string
-	driver_number: number
-	team: string
+	full_name: string
 	headshot_url: string
+	team_name: string
+	team_color: string
 }
 
 export interface LapData {
 	lap_number: number
-	time: number
-	speed_trap: number
+	time: number | null
+	speed_trap: number | null
 	is_pit_out_lap: boolean
-	compound: string
+	compound: string | null
 }
 
 export interface DriverLapsData {
-	driver_number: number
+	driver_number: string
+	abbreviation: string
 	first_name: string
 	last_name: string
-	team: string
+	team_name: string
+	team_color: string
 	headshot_url: string
 	laps: LapData[]
 }
 
 export interface DriverSessionResult {
-	position: number
-	team: string
+	position: number | null
+	classified_position: string
+	grid_position: number | null
+	team_name: string
+	team_color: string
 	first_name: string
 	last_name: string
-	number_of_laps: number
-	gap_to_leader: string
-	duration: number
-	dnf: boolean
-	dns: boolean
-	dsq: boolean
+	abbreviation: string
+	q1: number | null
+	q2: number | null
+	q3: number | null
+	time: number | null
+	status: string
+	points: number
+	laps: number | null
 }
 
 export interface SessionResultData {
@@ -63,7 +74,7 @@ export interface SessionResultData {
 }
 
 export interface MultipleDriverLapsData {
-	[driverNumber: number]: DriverLapsData
+	[driverNumber: string]: DriverLapsData
 }
 
 export type TeamColors = Record<string, string>;

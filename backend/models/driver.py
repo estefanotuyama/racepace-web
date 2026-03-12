@@ -1,14 +1,14 @@
-from sqlalchemy import Column, Integer, UniqueConstraint
-from sqlmodel import SQLModel, Field, null
+from sqlmodel import Field, SQLModel
 
-
-"""
-Database model that Represents a unique driver in the database.
-"""
 
 class Driver(SQLModel, table=True):
-    id: int = Field(sa_column=Column(Integer, primary_key=True, autoincrement=True))
-    first_name: str = Field(default="")
-    last_name: str = Field(default="")
-    name_acronym: str = Field(unique=True)
+    id: int | None = Field(default=None, primary_key=True)
+    driver_number: str
+    abbreviation: str = Field(unique=True)
+    first_name: str
+    last_name: str
+    full_name: str
     headshot_url: str = Field(default="")
+    country_code: str = Field(default="")
+    team_name: str = Field(default="")
+    team_color: str = Field(default="")

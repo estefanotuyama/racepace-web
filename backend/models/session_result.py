@@ -1,25 +1,24 @@
-from sqlalchemy import PrimaryKeyConstraint
-from typing import Union, List, Optional
-from sqlmodel import SQLModel, Field
+from typing import ClassVar
 
-
-"""
-Database model that Represents an F1Session's result"
-"""
+from sqlalchemy import UniqueConstraint
+from sqlmodel import Field, SQLModel
 
 
 class SessionResult(SQLModel, table=True):
-    meeting_key: int = Field(foreign_key="event.meeting_key")
-    session_key: int = Field(index=True, foreign_key="f1session.session_key")
-    driver_id: int = Field(index=True, foreign_key="driver.id")
-    position: Optional[int] = Field(default=None)
-    duration: Optional[str] = Field(default=None)
-    number_of_laps: Optional[int] = Field(default=None)
-    gap_to_leader: Optional[str] = Field(default=None)
-    dnf: bool = Field(default="")
-    dns: bool = Field(default="")
-    dsq: bool = Field(default="")
+    __table_args__: ClassVar = (UniqueConstraint("session_id", "driver_id", name="uq_result_session_driver"),)
 
-    __table_args__ = (
-        PrimaryKeyConstraint("session_key", "driver_id"),
-    )
+    id: int | None = Field(default=None, primary_key=True)
+    session_id: int = Field(foreign_key="f1session.id", index=True)
+    driver_id: int = Field(foreign_key="driver.id", index=True)
+    team_name: str = Field(default="")
+    team_color: str = Field(default="")
+    position: float | None = Field(default=None)
+    classified_position: str = Field(default="")
+    grid_position: float | None = Field(default=None)
+    q1: float | None = Field(default=None)
+    q2: float | None = Field(default=None)
+    q3: float | None = Field(default=None)
+    time: float | None = Field(default=None)
+    status: str = Field(default="")
+    points: float = Field(default=0.0)
+    laps: float | None = Field(default=None)

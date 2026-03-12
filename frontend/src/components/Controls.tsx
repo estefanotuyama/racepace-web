@@ -65,17 +65,17 @@ export const Controls = ({
 				<label htmlFor="event-select">Event</label>
 				<select
 					id="event-select"
-					value={selectedEvent?.meeting_key || ""}
+					value={selectedEvent?.round_number || ""}
 					onChange={(e) => {
-						const event = events.find((ev) => ev.meeting_key === Number(e.target.value));
+						const event = events.find((ev) => ev.round_number === Number(e.target.value));
 						if (event) onEventChange(event);
 					}}
 					disabled={!selectedYear || loading.events}
 				>
 					<option value="">Select Event</option>
 					{events.map((event) => (
-						<option key={event.meeting_key} value={event.meeting_key}>
-							{event.circuit_name}, {event.country_name}
+						<option key={event.round_number} value={event.round_number}>
+							{event.location}, {event.country}
 						</option>
 					))}
 				</select>
@@ -88,16 +88,16 @@ export const Controls = ({
 				<label htmlFor="session-select">Session</label>
 				<select
 					id="session-select"
-					value={selectedSession?.session_key || ""}
+					value={selectedSession?.session_name || ""}
 					onChange={(e) => {
-						const session = sessions.find((s) => s.session_key === Number(e.target.value));
+						const session = sessions.find((s) => s.session_name === e.target.value);
 						if (session) onSessionChange(session);
 					}}
 					disabled={!selectedEvent || loading.sessions}
 				>
 					<option value="">Select Session</option>
 					{sessions.map((session) => (
-						<option key={session.session_key} value={session.session_key}>
+						<option key={session.session_name} value={session.session_name}>
 							{session.session_name}
 						</option>
 					))}

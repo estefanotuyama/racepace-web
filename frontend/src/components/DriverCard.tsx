@@ -24,9 +24,8 @@ export const DriverCard = ({ driver, isSelected, onClick }: DriverCardProps) => 
 					{driver.first_name} {driver.last_name}
 				</h3>
 				<p className="driver-number">#{driver.driver_number}</p>
-				<p className="driver-team">{driver.team}</p>
+				<p className="driver-team">{driver.team_name}</p>
 			</div>
 		</div>
 	)
 }
-

@@ -1,10 +1,12 @@
 from datetime import timedelta
-from backend.models.session_calendar import SessionCalendar
-from backend.db.database import engine
-from sqlmodel import Session, SQLModel
-from icalendar import Calendar
 from urllib.request import urlopen
+
+from icalendar import Calendar
 from sqlalchemy.dialects.postgresql import insert
+from sqlmodel import Session, SQLModel
+
+from backend.db.database import engine
+from backend.models.session_calendar import SessionCalendar
 
 SQLModel.metadata.create_all(engine)
 
@@ -23,13 +25,11 @@ with Session(engine) as db:
             end = component.get("DTEND").dt + timedelta(hours=1)
             location = component.get("LOCATION")
 
-            stmt = insert(SessionCalendar).values(
-                summary=summary,
-                start=start,
-                end=end,
-                location=location
-            ).on_conflict_do_nothing(index_elements=["start", "end"])
+            stmt = (
+                insert(SessionCalendar)
+                .values(summary=summary, start=start, end=end, location=location)
+                .on_conflict_do_nothing(index_elements=["start", "end"])
+            )
 
             db.execute(stmt)
     db.commit()
-

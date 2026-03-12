@@ -48,7 +48,6 @@ const CustomTooltip = ({ active, payload, bestLapSec, selectedDrivers, coordinat
 	const data = payload[0].payload
 
 	const driverEntries = payload.filter((entry) => entry.value != null)
-	const showSpeedTrap = selectedDrivers.length === 1
 
 	// Calculate comparison if we have exactly 2 drivers
 	let comparisonText = null
@@ -65,8 +64,8 @@ const CustomTooltip = ({ active, payload, bestLapSec, selectedDrivers, coordinat
 			<p className="tooltip-label">Lap {data.lap}</p>
 			{driverEntries.map((entry, index) => {
 				const delta = entry.value != null && bestLapSec != null ? `+${(entry.value - bestLapSec).toFixed(3)}s` : ""
-				const driverNumber = entry.dataKey.replace("driver", "")
-				const compound = data[`compound${driverNumber}`] || "N/A"
+				const driverKey = entry.dataKey.replace("driver_", "")
+				const compound = data[`compound_${driverKey}`] || "N/A"
 
 				return (
 					<div key={index} style={{ color: entry.color }}>
@@ -79,7 +78,7 @@ const CustomTooltip = ({ active, payload, bestLapSec, selectedDrivers, coordinat
 				)
 			})}
 			{comparisonText && <p style={{ color: "#00C49F", fontWeight: "bold", marginTop: "4px" }}>{comparisonText}</p>}
-			{showSpeedTrap && <p>Speed Trap: {data.speedTrap || "N/A"} km/h</p>}
+			{<p>Speed Trap: {data.speedTrap || "N/A"} km/h</p>}
 			{data.pitOut && <p style={{ color: "#82aaff" }}>Pit Out Lap</p>}
 			{data.isOutlier && <p style={{ color: "#cccccc" }}>Marked as outlier</p>}
 		</div>
@@ -121,8 +120,8 @@ const CustomDot = (props) => {
 	const { cx, cy, payload, dataKey } = props
 	if (payload[dataKey] == null) return null
 
-	const driverNumber = dataKey.replace("driver", "")
-	const compound = payload[`compound${driverNumber}`]
+	const driverKey = dataKey.replace("driver_", "")
+	const compound = payload[`compound_${driverKey}`]
 
 	return (
 		<circle
@@ -137,17 +136,17 @@ const CustomDot = (props) => {
 }
 
 /* ---------- Custom Legend Component ---------- */
-const CustomLegend = ({ driverData, teamColors }) => {
-	if (!driverData || Object.keys(driverData).length <= 1 || !teamColors) return null
+const CustomLegend = ({ driverData }) => {
+	if (!driverData || Object.keys(driverData).length <= 1) return null
 
 	return (
 		<div className="chart-legend">
-			{Object.entries(driverData).map(([driverNumber, data], index) => {
-				const stroke = teamColors && teamColors[data.driver.team] ? teamColors[data.driver.team] : fallbackColors(index)
+			{Object.entries(driverData).map(([driverKey, data], index) => {
+				const stroke = data.driver.team_color || fallbackColors(index)
 				const strokeDasharray = index === 1 ? "5 5" : "0"
 
 				return (
-					<div key={driverNumber} className="legend-item">
+					<div key={driverKey} className="legend-item">
 						<svg width="25" height="3" className="legend-color">
 							<line
 								x1="0"
@@ -186,9 +185,9 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 
 		const newDriverData = {}
 		selectedDrivers.forEach((driver) => {
-			const lapData = driverLaps[driver.driver_number]
+			const lapData = driverLaps[driver.abbreviation]
 			if (lapData && lapData.laps) {
-				newDriverData[driver.driver_number] = {
+				newDriverData[driver.abbreviation] = {
 					driver,
 					laps: lapData.laps.map((lap) => ({
 						lap: lap.lap_number,
@@ -196,7 +195,6 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 						speedTrap: lap.speed_trap,
 						compound: lap.compound,
 						pitOut: lap.is_pit_out_lap,
-						team: lap.team,
 					})),
 				}
 			}
@@ -239,11 +237,11 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 		const chartData = sortedLaps.map((lapNumber) => {
 			const lapData = { lap: lapNumber }
 
-			Object.entries(driverData).forEach(([driverNumber, data]) => {
+			Object.entries(driverData).forEach(([driverKey, data]) => {
 				const lap = data.laps.find((l) => l.lap === lapNumber)
 				if (lap) {
-					lapData[`driver${driverNumber}`] = lap.timeSec
-					lapData[`compound${driverNumber}`] = lap.compound // Store compound per driver
+					lapData[`driver_${driverKey}`] = lap.timeSec
+					lapData[`compound_${driverKey}`] = lap.compound
 					lapData.speedTrap = lap.speedTrap
 					lapData.pitOut = lap.pitOut
 				}
@@ -270,8 +268,8 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 		const OUTLIER_THRESHOLD = 1.15
 		chartData.forEach((d) => {
 			d.isOutlier = false
-			Object.keys(driverData).forEach((driverNumber) => {
-				const time = d[`driver${driverNumber}`]
+			Object.keys(driverData).forEach((driverKey) => {
+				const time = d[`driver_${driverKey}`]
 				if (time != null && median != null && time > median * OUTLIER_THRESHOLD) {
 					d.isOutlier = true
 				}
@@ -285,7 +283,7 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 
 		const bestLapSec = allValidTimes.length ? Math.min(...allValidTimes) : null
 		const bestLapData = bestLapSec
-			? chartData.find((d) => Object.keys(driverData).some((driverNumber) => d[`driver${driverNumber}`] === bestLapSec))
+			? chartData.find((d) => Object.keys(driverData).some((driverKey) => d[`driver_${driverKey}`] === bestLapSec))
 			: null
 		const bestLapNumber = bestLapData ? bestLapData.lap : null
 
@@ -293,8 +291,8 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 		const PAD = 1.0 // seconds padding
 		let scaleTimes = []
 		chartData.forEach((d) => {
-			Object.keys(driverData).forEach((driverNumber) => {
-				const time = d[`driver${driverNumber}`]
+			Object.keys(driverData).forEach((driverKey) => {
+				const time = d[`driver_${driverKey}`]
 				if (time != null && !(excludeOutliers && d.isOutlier)) {
 					scaleTimes.push(time)
 				}
@@ -362,7 +360,7 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 					Scroll horizontally to view all data.
 				</p>
 
-				<CustomLegend driverData={driverData} teamColors={teamColors} />
+				<CustomLegend driverData={driverData} />
 				<div className="lap-chart-container" style={{ overflowX: "auto", paddingTop: 12 }}>
 
 					<div
@@ -415,7 +413,7 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 								allowEscapeViewBox={{ x: true, y: true }}
 							/>
 
-							{bestLapNumber != null && selectedDrivers.length === 1 && (
+							{bestLapNumber != null && (
 								<ReferenceLine
 									x={bestLapNumber}
 									label={{
@@ -431,12 +429,12 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 								/>
 							)}
 
-							{Object.entries(driverData).map(([driverNumber, data], index) => (
+							{Object.entries(driverData).map(([driverKey, data], index) => (
 								<Line
-									key={driverNumber}
+									key={driverKey}
 									type="linear"
-									dataKey={`driver${driverNumber}`}
-									stroke={teamColors && teamColors[data.driver.team] ? teamColors[data.driver.team] : fallbackColors(index)}
+									dataKey={`driver_${driverKey}`}
+									stroke={data.driver.team_color || fallbackColors(index)}
 									strokeWidth={2}
 									strokeDasharray={index === 1 ? "5 5" : "0"}
 									name={`${data.driver.first_name} ${data.driver.last_name}`}
@@ -475,4 +473,3 @@ export const LapTimeChart = ({ selectedDrivers, driverLaps, loading, error, team
 		</div>
 	)
 }
-

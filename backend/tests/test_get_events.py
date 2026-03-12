@@ -1,8 +1,10 @@
 from fastapi.testclient import TestClient
+
 from backend.main import app
 
 client = TestClient(app)
 YEAR = 2024
+
 
 def test_get_events_by_year():
     response = client.get(f"/events/{YEAR}")

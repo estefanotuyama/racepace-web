@@ -1,5 +1,7 @@
 from datetime import datetime
-from sqlmodel import SQLModel, Field
+
+from sqlmodel import Field, SQLModel
+
 
 class SessionCalendar(SQLModel, table=True):
     summary: str | None = None
