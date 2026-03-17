@@ -1,18 +1,19 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY ./backend/requirements.txt /app/requirements.txt
+COPY pyproject.toml uv.lock ./
 COPY ./static/favicon.ico /app/static/favicon.ico
 
-# Install system dependencies and then Python dependencies
-RUN apt-get update && apt-get install -y build-essential libpq-dev && \
-    pip install --no-cache-dir -r /app/requirements.txt && \
+RUN apt-get update && apt-get install -y libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the rest of backend application
+RUN uv sync --frozen --no-dev --no-install-project
+
 COPY ./backend /app/backend
 
 EXPOSE 8000
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

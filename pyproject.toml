@@ -1,0 +1,29 @@
+[project]
+name = "racepace-web"
+version = "0.1.0"
+description = "F1 lap time data API and explorer"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fastapi==0.115.12",
+    "uvicorn==0.34.3",
+    "gunicorn==22.0.0",
+    "sqlalchemy==2.0.41",
+    "sqlmodel==0.0.24",
+    "psycopg2-binary==2.9.10",
+    "icalendar==6.3.1",
+    "python-dotenv==1.1.0",
+    "pydantic==2.11.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "httpx>=0.28.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
