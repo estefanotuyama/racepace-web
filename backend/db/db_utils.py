@@ -10,23 +10,23 @@ from backend.models.driver import Driver
 
 """This script has utilities we use to assist database operations."""
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("racepace")
 logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S",
 )
 
 SessionDep = Annotated[Session, Depends(get_session)]
 URL_BASE = "https://api.openf1.org/v1/"
 FALLBACK_COMPOUND = "UNKNOWN"
 
-def get_data(url: str, retries: int = 5, backoff: float = 1.0):
+def get_data(url: str, retries: int = 8):
     """
     Fetches data from the OpenF1 API given a request URL.
     OpenF1 API is unstable, so we have a retrying logic in case something fails.
     :param url: URL for which we want to request data.
     :param retries: Number of retries if request fails.
-    :param backoff: Time to wait if failure.
     :return: Data requested, a list of dictionaries.
     """
     for attempt in range(retries):
@@ -35,20 +35,21 @@ def get_data(url: str, retries: int = 5, backoff: float = 1.0):
                 return json.loads(response.read().decode("utf-8"))
 
         except HTTPError as e:
-            if e.code == 429:
-                wait_time = 15 * (attempt + 1)
-                logger.warning(f"HTTP 429 Too Many Requests: Waiting {wait_time}s before retrying ({attempt+1}/{retries}) → {url}")
+            if e.code == 404:
+                logger.warning(f"HTTP 404: No data at {url}")
+                return None
+            wait_time = 2 ** (attempt + 1)
+            if e.code == 429 or 500 <= e.code < 600:
+                logger.warning(f"[Retry {attempt+1}/{retries}] HTTP {e.code}: Waiting {wait_time}s → {url}")
                 time.sleep(wait_time)
-            elif 500 <= e.code < 600:
-                logger.warning(f"[Retry {attempt+1}/{retries}] HTTP {e.code}: {url}")
-                time.sleep(backoff * (attempt + 1))
             else:
                 logger.error(f"Non-retryable HTTPError {e.code} on {url}")
                 raise
 
         except URLError as e:
-            logger.warning(f"[Retry {attempt+1}/{retries}] URLError: {e.reason} → {url}")
-            time.sleep(backoff * (attempt + 1))
+            wait_time = 2 ** (attempt + 1)
+            logger.warning(f"[Retry {attempt+1}/{retries}] URLError: {e.reason} → Waiting {wait_time}s → {url}")
+            time.sleep(wait_time)
 
         except Exception as e:
             logger.error(f"Unexpected error: {e}")

@@ -41,10 +41,9 @@ def add_meetings_to_db(session: Session):
     existing_meetings_query = session.exec(select(Event.meeting_key))
     existing_meetings = set(existing_meetings_query.all())
 
+    added = 0
     for meeting in meetings:
-
         if meeting.get('meeting_key') in existing_meetings:
-            logger.info(f"Meeting {str(meeting['meeting_key'])} already exists in DB, skipping.")
             continue
 
         new_meeting = Event(
@@ -58,7 +57,8 @@ def add_meetings_to_db(session: Session):
                     )
 
         session.add(new_meeting)
-        logger.info(f"Staged meeting {str(meeting['meeting_key'])} for addition.")
+        added += 1
+    logger.info(f"Meetings: {added} new, {len(existing_meetings)} existing")
 
 def add_current_meeting(session, meeting_key):
     existing = session.get(Event, meeting_key)
@@ -95,7 +95,6 @@ def add_session_to_db(session:Session, f1session: dict):
     """
     existing = session.get(F1Session, f1session['session_key'])
     if existing:
-        logger.info(f"Session {str(f1session['session_key'])} already exists, skipping.")
         return
     new_f1session = F1Session(
         location=f1session.get('location'),
@@ -106,7 +105,6 @@ def add_session_to_db(session:Session, f1session: dict):
         date=f1session.get('date_start')
     )
     session.add(new_f1session)
-    logger.info(f"Staged session {str(f1session['session_key'])} for addition.")
 
 def add_drivers_and_session_links(session: Session, session_key: int, all_drivers_data: list[dict]):
     """
@@ -114,6 +112,7 @@ def add_drivers_and_session_links(session: Session, session_key: int, all_driver
     This function NO LONGER fetches data, it just processes a list of driver data.
     """
 
+    new_drivers = 0
     acronyms_from_api = {
         d['name_acronym'] for d in all_drivers_data if d.get('name_acronym')
     }
@@ -156,7 +155,6 @@ def add_drivers_and_session_links(session: Session, session_key: int, all_driver
 
             if made_update:
                 session.add(driver)
-                logger.info(f"Updated missing name for driver {acronym}.")
 
         else:
             driver = Driver(
@@ -166,16 +164,16 @@ def add_drivers_and_session_links(session: Session, session_key: int, all_driver
                 headshot_url=driver_data.get('headshot_url', "")
             )
             session.add(driver)
-            logger.info(f"Staged new driver {acronym} for addition (with placeholders if needed).")
+            new_drivers += 1
             acronym_driver_map[acronym] = driver
     session.flush()
 
+    linked = 0
     for driver_data in all_drivers_data:
         acronym = driver_data.get('name_acronym')
         if not acronym:
             continue
         driver = acronym_driver_map.get(acronym)
-        # save driver id for later
         driver_data['driver_id'] = driver.id
 
         if driver.id not in existing_links_set:
@@ -186,14 +184,16 @@ def add_drivers_and_session_links(session: Session, session_key: int, all_driver
                 driver_number=driver_data.get('driver_number')
             )
             session.add(new_session_driver)
-            logger.info(f"Staged driver {driver_data['name_acronym']} in session {str(session_key)} for addition.")
+            linked += 1
+    if new_drivers or linked:
+        logger.info(f"  Drivers: {new_drivers} new, {linked} linked to session")
 
 def add_all_laps_for_session(session: Session, session_key: int):
     """
     Fetch lap/stint/driver data, ensure drivers are linked, then batch upsert laps.
     Assumes the caller manages transactions (e.g. with session.begin()).
     """
-    logger.info(f"Starting bulk lap/stint processing for session {session_key}.")
+    logger.info(f"  Fetching laps/stints/drivers from API...")
 
     # fetch remote data
     laps_url = URL_BASE + f'laps?session_key={session_key}'
@@ -268,7 +268,7 @@ def add_all_laps_for_session(session: Session, session_key: int):
             })
 
     if not values_to_upsert:
-        logger.info(f"No new laps to upsert for session {session_key}.")
+        logger.info(f"  Laps: 0 new")
         return
 
     stmt = insert(SessionLaps).values(
@@ -301,7 +301,7 @@ def add_all_laps_for_session(session: Session, session_key: int):
 
     session.execute(do_update, values_to_upsert)
 
-    logger.info(f"Upserted {len(values_to_upsert)} laps for session {session_key}.")
+    logger.info(f"  Laps: {len(values_to_upsert)} upserted")
 
 def add_session_result_to_db(session:Session, session_key:int):
     """
@@ -313,6 +313,8 @@ def add_session_result_to_db(session:Session, session_key:int):
     data = get_data(URL_BASE + f'session_result?session_key={session_key}')
     if not data:
         return
+
+    added = 0
 
     session_drivers_query = session.exec(
         select(SessionDriver).where(SessionDriver.session_key == session_key)
@@ -331,8 +333,6 @@ def add_session_result_to_db(session:Session, session_key:int):
         driver_id = driver_map.get(driver_number)
 
         if not driver_id:
-            logger.error(f"Could not find a SessionDriver link for driver number "
-                         f"{driver_number} in session {session_key}. Skipping result.")
             continue
 
         if driver_id in existing_results_set:
@@ -351,7 +351,8 @@ def add_session_result_to_db(session:Session, session_key:int):
             dsq=datapoint.get('dsq')
         )
         session.add(sr_entry)
-    logger.info(f"Staged session results of session {str(session_key)} for addition.")
+        added += 1
+    logger.info(f"  Results: {added} added")
 
 def add_teams_colors(session:Session, year=None):
     try: 
@@ -384,15 +385,17 @@ def update_db():
     """
     Controls the flow to update the database, calling all necessary methods.
     """
+    logger.info("Starting database update...")
     with Session(engine) as session:
         data_url = ""
         try:
-            latest_session= fetch_latest_session(session)
+            latest_session = fetch_latest_session(session)
 
             if latest_session:
+                logger.info(f"Latest session in DB: {latest_session.date}")
                 data_url = URL_BASE + f'sessions?date_start>={latest_session.date}'
-            # if this is the first time populating the script (no latest session in db), get all sessions and meetings
             else:
+                logger.info("Empty database — full population")
                 data_url = URL_BASE + 'sessions'
                 add_meetings_to_db(session)
                 add_teams_colors(session)
@@ -401,24 +404,47 @@ def update_db():
             logger.error(f"Failed to fetch data: {e}")
 
         data = get_data(data_url)
-        data_size = len(data)
-        c = 0
-        for f1session in data:
+        total = len(data)
+        logger.info(f"Found {total} sessions to process")
+
+        for i, f1session in enumerate(data, 1):
+            session_key = f1session['session_key']
+            session_name = f1session.get('session_name', '?')
+            location = f1session.get('location', '?')
             try:
                 with session.begin():
-                    session_key = f1session['session_key']
+                    logger.info(f"[{i}/{total}] {location} — {session_name} (key={session_key})")
                     add_current_meeting(session, f1session['meeting_key'])
                     add_session_to_db(session, f1session)
                     add_all_laps_for_session(session, session_key)
                     add_session_result_to_db(session, session_key)
-                c += 1
-                logger.info(f"Committed all info for session {str(session_key)}. Progress: ({c}/{data_size})")
             except Exception:
-                logger.error(
-                    f"Transaction failed for session {str(f1session['session_key'])}",
-                    exc_info=True,
-                )
+                logger.error(f"[{i}/{total}] FAILED session {session_key}", exc_info=True)
                 break
+
+        # Backfill: retry sessions that have no lap data yet
+        incomplete = session.exec(
+            select(F1Session).where(
+                ~exists(
+                    select(SessionLaps.id).where(
+                        SessionLaps.session_key == F1Session.session_key
+                    )
+                )
+            )
+        ).all()
+
+        if incomplete:
+            logger.info(f"Backfilling {len(incomplete)} sessions with no lap data...")
+            for i, f1sess in enumerate(incomplete, 1):
+                try:
+                    with session.begin():
+                        logger.info(f"  [{i}/{len(incomplete)}] {f1sess.location} — {f1sess.session_name} (key={f1sess.session_key})")
+                        add_all_laps_for_session(session, f1sess.session_key)
+                        add_session_result_to_db(session, f1sess.session_key)
+                except Exception:
+                    logger.error(f"  [{i}/{len(incomplete)}] FAILED backfill {f1sess.session_key}", exc_info=True)
+
+    logger.info("Database update complete.")
 
 if __name__ == "__main__":
     from .database import create_db_and_tables
