@@ -33,7 +33,7 @@ app.add_middleware(
 def on_startup():
     create_db_and_tables(populating=False)
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"message": "Connection successful"}
 
