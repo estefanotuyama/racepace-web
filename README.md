@@ -1,150 +1,190 @@
-# 🏎️ RacePace web-app v0.7
+# RacePace Web v0.7
 
-![Python](https://img.shields.io/badge/python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/fastapi-0.110-green)
-![React](https://img.shields.io/badge/react-18.3-blue)
+![Python](https://img.shields.io/badge/python-3.13-blue)
+![FastAPI](https://img.shields.io/badge/fastapi-0.115-green)
+![React](https://img.shields.io/badge/react-19-blue)
+![TypeScript](https://img.shields.io/badge/typescript-4.9-blue)
+![PostgreSQL](https://img.shields.io/badge/postgresql-15-blue)
 
-A web application for exploring Formula 1 driver data, sessions, lap times, and results — using OpenF1 data.
+A web application for exploring Formula 1 driver data, sessions, lap times, and results — powered by OpenF1 data.
 
-Application is live on [https://f1racepace.vercel.app](https://f1racepace.vercel.app)
+Live at [https://f1racepace.vercel.app](https://f1racepace.vercel.app)
 
------
+---
 
-## 🚀 Features
+## Features
 
-  - ✅ Track F1 events by year and location
-  - ✅ View session info (FP1, FP2, Qualifying, Race, etc.)
-  - ✅ Explore driver participation and compare lap times
-  - ✅ Clean, modular FastAPI backend using SQLModel
-  - ✅ PostgreSQL database
-  - ✅ Frontend in React
+- Browse F1 events by year and location
+- View session info (FP1, FP2, FP3, Qualifying, Sprint, Race)
+- Compare lap times across multiple drivers with interactive charts
+- View session results with finishing positions, gaps, and DNF/DNS/DSQ status
+- Team color identification throughout the UI
+- Automated weekly database updates via GitHub Actions
+- Backfill for incomplete sessions with missing lap data
 
------
+---
 
-## 📁 Structure
+## Tech Stack
 
-```sh
-F1Project/
+**Backend**: FastAPI, SQLModel, PostgreSQL (Supabase), uv
+
+**Frontend**: React 19, TypeScript, Recharts
+
+**Infrastructure**: Render (backend), Vercel (frontend), GitHub Actions (scheduled DB updates)
+
+---
+
+## Project Structure
+
+```
+racepace-web/
 ├── backend/
-│   ├── main.py           # ✅ FastAPI app entry point
-│   ├── models/           # SQLModel ORM classes
-│   ├── api/              # API route definitions
-│   ├── crud/             # DB access logic
-│   ├── db/               # DB definitions and utilities (engine, sessions, populators)
-│   ├── schemas/          # Pydantic models for request/response
-│   ├── utils/            # Utility files
-│   └── __init__.py
+│   ├── main.py              # FastAPI app entry point
+│   ├── api/                 # API route definitions
+│   ├── models/              # SQLModel ORM classes
+│   ├── crud/                # Database access logic
+│   ├── db/                  # DB engine, sessions, data population
+│   ├── schemas/             # Pydantic request/response models
+│   ├── service/             # Business logic
+│   ├── repository/          # Data access layer
+│   ├── scripts/             # Utility scripts
+│   ├── tests/               # pytest tests
+│   └── utils/               # Helpers
 ├── frontend/
-│   ├── app/              # Exports frontend code
-│   ├── public/           # Frontend static files
-│   ├── src/              # Source code
-├── static/               # static files (icons)
-├── .env                  # Environment variables (ignored in Git)
-├── requirements.txt      # Python dependencies
-└── README.md             # Project documentation
+│   ├── src/
+│   │   ├── components/      # React components
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── services/        # API client
+│   │   ├── types.ts         # TypeScript type definitions
+│   │   ├── App.tsx          # Main app component
+│   │   └── index.tsx        # Entry point
+│   └── package.json
+├── .github/workflows/       # GitHub Actions (scheduled DB update)
+├── static/                  # Static assets (favicon)
+├── Dockerfile               # Docker image for backend
+├── docker-compose.yml       # Local multi-container setup
+├── pyproject.toml           # Python project config (uv)
+├── Makefile                 # Development commands
+└── README.md
 ```
 
------
+---
 
-## 🛠️ Setup & Usage
+## Setup & Usage
 
-### 1\. Clone the Repo
+### 1. Clone the repo
 
 ```bash
 git clone git@github.com:estefanotuyama/racepace-web.git
 cd racepace-web
 ```
 
-### 2\. Create a Virtual Environment
+### 2. Install uv
+
+Follow the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+### 3. Install dependencies
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On macOS/Linux
+uv sync
+```
+
+### 4. Configure environment variables
+
+Create a `.env` file in the project root:
+
+```
+DATABASE_URL=postgresql://user:password@host:port/database
+ADMIN_SECRET=your-secret-key
+```
+
+### 5. Populate the database
+
+Fetches data from the OpenF1 API and populates the database. May take up to 20 minutes on the first run.
+
+```bash
+uv run python -m backend.db.update_db
+```
+
+### 6. Run the backend
+
+```bash
+make backend
 # or
-.\venv\Scripts\activate   # On Windows
+uv run uvicorn backend.main:app --reload
 ```
 
-### 3\. Install Dependencies
+API docs available at:
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-```bash
-pip install -r dev-requirements.txt
-```
+### 7. Run the frontend
 
-### 4\. Configure the Database
-
-This project uses PostgreSQL for the database. You will need to have PostgreSQL installed and running.
-
-1.  **Install PostgreSQL**: You can download and install PostgreSQL from the official website: [https://www.postgresql.org/download/](https://www.postgresql.org/download/)
-
-2.  **Create a Database and User**: Create a new database and a user with privileges to access it. You can do this using the `psql` command-line tool or a graphical tool like pgAdmin.
-
-3.  **Create a `.env` file**: In the root of the project, create a file named `.env` and add the following line, replacing 'user' with your username, 'password' with your password (if set) and 'database' with your database name:
-
-    ```
-    DATABASE_URL="postgresql://user:password@host:port/database"
-    ```
-
-### 5\. 🗄️ Populate the Database
-
-The project pulls data from the OpenF1 API. To create the database tables and populate them, run:
-
-```bash
-python -m backend.db.update_db
-```
-May take up to 20 minutes.
-
-### 6\. 🧪 Run the API Server
-
-From the root directory (with the venv active), start the development server with:
-
-```bash
-uvicorn backend.main:app --reload
-```
-
-Now, you can access the API documentation:
-
-  - **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
-  - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
-
-### 7\. Add frontend .env
-
-Add a .env in the frontend directory and point the frontend to the API:
+Create `frontend/.env`:
 
 ```
 REACT_APP_API_URL=http://localhost:8000
 ```
 
-### 8\. Install Frontend dependencies and start frontend server
+Then:
 
 ```bash
-cd ./frontend
-npm install
-npm start
+make frontend
+# or
+cd frontend && npm install && npm start
 ```
 
-Now, you can access the application at http://localhost:3000
+The app will be available at [http://localhost:3000](http://localhost:3000).
 
------
+### Run both concurrently
 
-## 📌 TODO
+```bash
+make dev
+```
 
-  - [x] Add driver, session, and lap time API routes (in progress)
-  - [x] Write tests using `pytest`
-  - [x] Add Front-End
-  - [x] Add session stats feature
-  - [x] Convert to PostgreSQL
-  - [x] Add lap time comparison feature
-  - [x] Deploy to a cloud service (frontend deployed in Vercel, backend on Hetzner)
+---
 
-Future goal is to add a live data module so users can view and compare driver data from live races.
------
+## API Endpoints
 
-## 👨‍💻 Author
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET, HEAD | `/` | Health check |
+| GET | `/events/{year}` | All events for a given year |
+| GET | `/events/years/` | All available years |
+| GET | `/sessions/{meeting_key}` | Sessions for an event |
+| GET | `/session_result/{session_key}` | Session finishing results |
+| GET | `/drivers/{session_key}` | Drivers in a session |
+| GET | `/laps/{session_key}/{driver_number}` | Lap times for a driver |
+| GET | `/teams/` | Team color mapping |
+| POST | `/admin/update` | Trigger DB update (requires `ADMIN_SECRET` header) |
 
-Built by **Estéfano Tuyama Gerassi**
+---
 
------
+## Deployment
 
-## ⚠️ License
+- **Frontend**: Deployed on [Vercel](https://vercel.com)
+- **Backend**: Deployed on [Render](https://render.com)
+- **Database**: Hosted on [Supabase](https://supabase.com) (PostgreSQL)
+- **Data updates**: GitHub Actions runs `backend.db.update_db` weekly (Tuesdays 18:00 UTC), configurable via `.github/workflows/update_db.yml`
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string (Supabase) |
+| `ADMIN_SECRET` | Secret for the `/admin/update` endpoint |
+| `REACT_APP_API_URL` | Backend URL for the frontend (in `frontend/.env`) |
+
+---
+
+## Author
+
+Built by **Estefano Tuyama Gerassi**
+
+---
+
+## License
 
 This project is for educational purposes only. Data is sourced from the public [OpenF1 API](https://openf1.org/).
