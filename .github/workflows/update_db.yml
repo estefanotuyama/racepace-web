@@ -2,7 +2,7 @@ name: Update F1 Database
 
 on:
   schedule:
-    - cron: '0 18 * * 1'   # Monday 18:00 UTC
+    - cron: '0 18 * * 2'   # Tuesday 18:00 UTC
   workflow_dispatch:        # Manual trigger from GitHub UI
 
 env:
