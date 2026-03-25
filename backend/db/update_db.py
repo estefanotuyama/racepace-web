@@ -169,6 +169,7 @@ def add_drivers_and_session_links(session: Session, session_key: int, all_driver
     session.flush()
 
     linked = 0
+    seen_driver_ids = set()
     for driver_data in all_drivers_data:
         acronym = driver_data.get('name_acronym')
         if not acronym:
@@ -176,7 +177,7 @@ def add_drivers_and_session_links(session: Session, session_key: int, all_driver
         driver = acronym_driver_map.get(acronym)
         driver_data['driver_id'] = driver.id
 
-        if driver.id not in existing_links_set:
+        if driver.id not in existing_links_set and driver.id not in seen_driver_ids:
             new_session_driver = SessionDriver(
                 session_key=session_key,
                 driver_id=driver.id,
@@ -185,6 +186,7 @@ def add_drivers_and_session_links(session: Session, session_key: int, all_driver
             )
             session.add(new_session_driver)
             linked += 1
+            seen_driver_ids.add(driver.id)
     if new_drivers or linked:
         logger.info(f"  Drivers: {new_drivers} new, {linked} linked to session")
 
@@ -203,7 +205,16 @@ def add_all_laps_for_session(session: Session, session_key: int):
     all_stints_data = get_data(stints_url) or []
 
     drivers_url = URL_BASE + f"drivers?session_key={session_key}"
-    all_drivers_data = get_data(drivers_url) or []
+    all_drivers_data_raw = get_data(drivers_url) or []
+
+    # deduplicate by driver_number (API can return duplicate entries)
+    seen_numbers = set()
+    all_drivers_data = []
+    for d in all_drivers_data_raw:
+        dn = d.get('driver_number')
+        if dn is not None and dn not in seen_numbers:
+            seen_numbers.add(dn)
+            all_drivers_data.append(d)
 
     # group by driver_number for quick lookup
     laps_by_driver = defaultdict(list)
@@ -231,8 +242,8 @@ def add_all_laps_for_session(session: Session, session_key: int):
     ).all()
     existing_laps = {(r[0], r[1]) for r in rows} if rows else set()
 
-    # collect the parameter dicts we want to upsert
-    values_to_upsert: list[dict] = []
+    # collect the parameter dicts we want to upsert (keyed to avoid duplicates)
+    upsert_map: dict[tuple, dict] = {}
 
     for driver_data in all_drivers_data:
         driver_number = driver_data.get('driver_number')
@@ -256,8 +267,9 @@ def add_all_laps_for_session(session: Session, session_key: int):
                 continue
 
             compound = stints_hashmap.get(lap_num, None)
+            key = (driver_id, session_key, lap_num)
 
-            values_to_upsert.append({
+            upsert_map[key] = {
                 'driver_id': driver_id,
                 'session_key': lap.get('session_key'),
                 'lap_number': lap_num,
@@ -265,7 +277,9 @@ def add_all_laps_for_session(session: Session, session_key: int):
                 'lap_time': lap.get('lap_duration', 0.0),
                 'st_speed': lap.get('st_speed', 0),
                 'compound': compound,
-            })
+            }
+
+    values_to_upsert = list(upsert_map.values())
 
     if not values_to_upsert:
         logger.info(f"  Laps: 0 new")
@@ -432,6 +446,9 @@ def update_db():
                 )
             )
         ).all()
+
+        # Close the implicit transaction from the query above so session.begin() works
+        session.rollback()
 
         if incomplete:
             logger.info(f"Backfilling {len(incomplete)} sessions with no lap data...")
