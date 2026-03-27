@@ -5,7 +5,7 @@ from sqlalchemy import and_
 
 from backend.db.database import engine
 from backend.db.db_utils import logger
-from backend.db.update_db import update_db
+from backend.ingestion.update_service import update_db
 from backend.models.session_calendar import SessionCalendar
 from sqlmodel import Session, select
 

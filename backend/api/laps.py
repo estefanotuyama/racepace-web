@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
 from backend.crud.lap import get_driver_lap_times
-from backend.db.db_utils import SessionDep, FALLBACK_COMPOUND
+from backend.db.db_utils import SessionDep
+from backend.constants import FALLBACK_COMPOUND
 from backend.schemas.driver_laps_schema import DriverLapsRead, LapRead
 
 router = APIRouter()

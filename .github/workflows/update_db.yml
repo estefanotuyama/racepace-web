@@ -17,4 +17,4 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv python install 3.13
       - run: uv sync --frozen --no-dev
-      - run: uv run python -m backend.db.update_db
+      - run: uv run python -m backend.ingestion.update_service

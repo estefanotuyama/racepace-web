@@ -1,6 +1,8 @@
-from sqlmodel import Session, select
+from sqlalchemy import exists as sa_exists
+from sqlmodel import Session, select, desc
 from backend.models.driver import Driver
 from backend.models.session_driver import SessionDriver
+from backend.models.session_laps import SessionLaps
 from backend.models.session_result import SessionResult
 from backend.models.sessions import F1Session
 from backend.schemas.read_session_result import DriverPosition, ReadSessionResult
@@ -60,3 +62,36 @@ def get_session_result(session: Session, session_key: int):
     )
 
     return session_table
+
+
+def fetch_latest_f1session(session: Session) -> F1Session | None:
+    return session.exec(
+        select(F1Session).order_by(desc(F1Session.date))
+    ).first()
+
+
+def insert_f1session(session: Session, f1session_data: dict) -> None:
+    existing = session.get(F1Session, f1session_data["session_key"])
+    if existing:
+        return
+    new_f1session = F1Session(
+        location=f1session_data.get("location"),
+        meeting_key=f1session_data.get("meeting_key"),
+        session_key=f1session_data.get("session_key"),
+        session_type=f1session_data.get("session_type"),
+        session_name=f1session_data.get("session_name"),
+        date=f1session_data.get("date_start"),
+    )
+    session.add(new_f1session)
+
+
+def get_incomplete_sessions(session: Session) -> list[F1Session]:
+    return session.exec(
+        select(F1Session).where(
+            ~sa_exists(
+                select(SessionLaps.id).where(
+                    SessionLaps.session_key == F1Session.session_key
+                )
+            )
+        )
+    ).all()

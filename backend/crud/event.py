@@ -26,3 +26,24 @@ def get_teams(session):
 
     team_map = {team.name : team.color for team in teams}
     return team_map
+
+
+def get_existing_meeting_keys(session: Session) -> set[int]:
+    return set(session.exec(select(Event.meeting_key)).all())
+
+
+def insert_meeting(session: Session, meeting_data: dict) -> None:
+    new_meeting = Event(
+        meeting_key=meeting_data.get("meeting_key"),
+        circuit_key=meeting_data.get("circuit_key"),
+        location=meeting_data.get("location"),
+        country_name=meeting_data.get("country_name"),
+        circuit_name=meeting_data.get("circuit_short_name"),
+        meeting_official_name=meeting_data.get("meeting_official_name"),
+        year=meeting_data.get("year"),
+    )
+    session.add(new_meeting)
+
+
+def meeting_exists(session: Session, meeting_key: int) -> bool:
+    return session.get(Event, meeting_key) is not None
