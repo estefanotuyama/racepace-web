@@ -1,12 +1,12 @@
 import json
-import logging
 import time
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 from urllib.request import urlopen
 
 from backend.constants import FALLBACK_COMPOUND
 
-logger = logging.getLogger("racepace")
+from backend.logging_config import logger
 
 URL_BASE = "https://api.openf1.org/v1/"
 
@@ -110,7 +110,7 @@ def fetch_session_result(session_key: int) -> list[dict]:
 
 
 def fetch_team_color(team_name: str) -> str | None:
-    team_fmt = team_name.replace(" ", "%20")
+    team_fmt = quote(team_name)
     data = get_data(f"{URL_BASE}drivers?team_name={team_fmt}")
     if data:
         colour = data[0].get("team_colour")

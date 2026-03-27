@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import and_ 
 
 from backend.db.database import engine
-from backend.db.db_utils import logger
+from backend.logging_config import logger
 from backend.ingestion.update_service import update_db
 from backend.models.session_calendar import SessionCalendar
 from sqlmodel import Session, select

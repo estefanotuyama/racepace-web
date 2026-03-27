@@ -103,7 +103,7 @@ ADMIN_SECRET=your-secret-key
 Fetches data from the OpenF1 API and populates the database. May take up to 20 minutes on the first run.
 
 ```bash
-uv run python -m backend.db.update_db
+uv run python -m backend.ingestion.update_service
 ```
 
 ### 6. Run the backend
@@ -165,7 +165,7 @@ make dev
 - **Frontend**: Deployed on [Vercel](https://vercel.com)
 - **Backend**: Deployed on [Render](https://render.com)
 - **Database**: Hosted on [Supabase](https://supabase.com) (PostgreSQL)
-- **Data updates**: GitHub Actions runs `backend.db.update_db` weekly (Tuesdays 18:00 UTC), configurable via `.github/workflows/update_db.yml`
+- **Data updates**: GitHub Actions runs `backend.ingestion.update_service` weekly (Tuesdays 18:00 UTC), configurable via `.github/workflows/update_db.yml`
 
 ---
 

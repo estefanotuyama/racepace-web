@@ -1,12 +1,10 @@
-import logging
-
 from sqlalchemy import bindparam
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session, select
 from backend.models.session_laps import SessionLaps
 from backend.crud.driver import get_single_driver_from_session_key
 
-logger = logging.getLogger("racepace")
+from backend.logging_config import logger
 
 
 def get_driver_lap_times(session: Session, session_key: int, driver_number: int):

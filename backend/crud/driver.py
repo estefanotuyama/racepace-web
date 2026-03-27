@@ -1,11 +1,10 @@
-import logging
-
 from sqlmodel import Session, select
 from backend.models.driver import Driver
 from backend.models.session_driver import SessionDriver
 from backend.schemas.read_driver import DriverSessionInfo
 
-logger = logging.getLogger("racepace")
+from backend.logging_config import logger
+
 
 def get_drivers_from_session_key(session: Session, session_key: int) -> list[DriverSessionInfo]:
     """

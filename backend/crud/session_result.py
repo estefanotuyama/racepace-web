@@ -1,10 +1,8 @@
-import logging
-
 from sqlmodel import Session, select
 from backend.models.session_result import SessionResult
 from backend.models.session_driver import SessionDriver
 
-logger = logging.getLogger("racepace")
+from backend.logging_config import logger
 
 
 def insert_session_results(session: Session, session_key: int, results_data: list[dict]) -> int:

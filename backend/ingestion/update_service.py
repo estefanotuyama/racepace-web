@@ -1,15 +1,9 @@
-import logging
 from collections import defaultdict
 
 from sqlmodel import Session
 
 from backend.db.database import engine
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%H:%M:%S",
-)
 from backend.ingestion.openf1_client import (
     fetch_all_meetings,
     fetch_meeting,
@@ -36,7 +30,7 @@ from backend.crud.lap import get_existing_laps_with_compound, bulk_upsert_laps
 from backend.crud.session_result import insert_session_results
 from backend.crud.team import get_all_team_names, get_existing_team_names, insert_team
 
-logger = logging.getLogger("racepace")
+from backend.logging_config import logger
 
 
 def _add_all_meetings(session: Session) -> None:
@@ -161,6 +155,7 @@ def update_db() -> None:
     """
     logger.info("Starting database update...")
     with Session(engine) as session:
+        date_start = None
         try:
             latest_session = fetch_latest_f1session(session)
 
