@@ -25,5 +25,5 @@ def create_db_and_tables(populating:bool):
     #SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
     if populating:
-        from .update_db import update_db
+        from backend.ingestion.update_service import update_db
         update_db()

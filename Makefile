@@ -10,4 +10,4 @@ dev:
 	$(MAKE) backend & $(MAKE) frontend & wait
 
 update-db:
-	uv run python -m backend.db.update_db
+	uv run python -m backend.ingestion.update_service

@@ -2,7 +2,7 @@ import os
 
 from fastapi import APIRouter, Header, HTTPException
 
-from backend.db.update_db import update_db
+from backend.ingestion.update_service import update_db
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
