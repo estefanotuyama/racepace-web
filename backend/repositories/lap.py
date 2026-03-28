@@ -7,7 +7,6 @@ from sqlmodel import select
 
 from backend.db.db_utils import SessionDep
 from backend.models.session_laps import SessionLaps
-from backend.schemas.driver_laps_schema import LapRead
 from backend.logging_config import logger
 
 
@@ -15,23 +14,13 @@ class LapRepository:
     def __init__(self, session: SessionDep):
         self.session = session
 
-    def get_laps_for_driver(self, driver_id: int, session_key: int) -> list[LapRead]:
-        laps = self.session.exec(
+    def get_laps_for_driver(self, driver_id: int, session_key: int):
+        return self.session.exec(
             select(SessionLaps).where(
                 SessionLaps.driver_id == driver_id,
                 SessionLaps.session_key == session_key,
             )
         ).all()
-        return [
-            LapRead(
-                lap_number=lap.lap_number,
-                time=lap.lap_time,
-                speed_trap=lap.st_speed,
-                is_pit_out_lap=lap.is_pit_out_lap,
-                compound=lap.compound,
-            )
-            for lap in laps
-        ]
 
     def get_existing_laps_with_compound(self, session_key: int) -> set[tuple[int, int]]:
         rows = self.session.exec(

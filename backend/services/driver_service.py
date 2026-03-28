@@ -11,10 +11,17 @@ class DriverService:
         self.repo = repo
 
     def get_drivers(self, session_key: int) -> list[DriverResponse]:
-        drivers = self.repo.get_drivers_from_session_key(session_key)
+        results = self.repo.get_drivers_from_session_key(session_key)
         return [
-            DriverResponse(**d.model_dump(exclude={"id"}))
-            for d in drivers
+            DriverResponse(
+                driver_number=session_link.driver_number,
+                team=session_link.team,
+                first_name=driver.first_name,
+                last_name=driver.last_name,
+                name_acronym=driver.name_acronym,
+                headshot_url=driver.headshot_url,
+            )
+            for driver, session_link in results
         ]
 
 

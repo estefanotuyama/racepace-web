@@ -10,31 +10,18 @@ from backend.models.session_driver import SessionDriver
 from backend.models.session_laps import SessionLaps
 from backend.models.session_result import SessionResult
 from backend.models.sessions import F1Session
-from backend.schemas.session_schema import SessionRead
-from backend.schemas.read_session_result import DriverPosition
 
 
 class F1SessionRepository:
     def __init__(self, session: SessionDep):
         self.session = session
 
-    def get_sessions_from_meeting_key(self, meeting_key: int) -> list[SessionRead]:
-        f1sessions = self.session.exec(
+    def get_sessions_from_meeting_key(self, meeting_key: int):
+        return self.session.exec(
             select(F1Session).where(F1Session.meeting_key == meeting_key)
         ).all()
-        return [
-            SessionRead(
-                location=s.location,
-                meeting_key=s.meeting_key,
-                session_key=s.session_key,
-                session_type=s.session_type,
-                session_name=s.session_name,
-                date=s.date,
-            )
-            for s in f1sessions
-        ]
 
-    def get_session_result_data(self, session_key: int) -> list[DriverPosition]:
+    def get_session_result_data(self, session_key: int):
         statement = (
             select(SessionResult, Driver, SessionDriver)
             .select_from(SessionResult)
@@ -44,22 +31,7 @@ class F1SessionRepository:
             .where(SessionDriver.session_key == session_key)
             .order_by(SessionResult.position)
         )
-        results = self.session.exec(statement).all()
-        return [
-            DriverPosition(
-                position=result.position,
-                team=session_link.team,
-                first_name=driver.first_name,
-                last_name=driver.last_name,
-                number_of_laps=result.number_of_laps,
-                gap_to_leader=result.gap_to_leader,
-                duration=result.duration,
-                dnf=result.dnf,
-                dns=result.dns,
-                dsq=result.dsq,
-            )
-            for result, driver, session_link in results
-        ]
+        return self.session.exec(statement).all()
 
     def fetch_latest_f1session(self) -> F1Session | None:
         return self.session.exec(

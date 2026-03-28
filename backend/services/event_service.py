@@ -12,7 +12,18 @@ class EventService:
 
     def get_events(self, year: int) -> list[EventResponse]:
         events = self.repo.get_events_from_year(year)
-        return [EventResponse(**e.model_dump()) for e in events]
+        return [
+            EventResponse(
+                meeting_key=e.meeting_key,
+                circuit_key=e.circuit_key,
+                location=e.location,
+                country_name=e.country_name,
+                circuit_name=e.circuit_name,
+                meeting_official_name=e.meeting_official_name,
+                year=e.year,
+            )
+            for e in events
+        ]
 
     def get_years(self) -> list[int]:
         return self.repo.get_available_years()

@@ -16,25 +16,26 @@ class LapService:
     def get_driver_laps(
         self, session_key: int, driver_number: int
     ) -> DriverLapsResponse | None:
-        driver_info = self.driver_repo.get_single_driver_from_session_key(
+        result = self.driver_repo.get_single_driver_from_session_key(
             session_key, driver_number
         )
-        if not driver_info:
+        if not result:
             return None
 
-        laps = self.lap_repo.get_laps_for_driver(driver_info.id, session_key)
+        driver, session_data = result
+        laps = self.lap_repo.get_laps_for_driver(driver.id, session_key)
 
         return DriverLapsResponse(
-            driver_number=driver_info.driver_number,
-            first_name=driver_info.first_name,
-            last_name=driver_info.last_name,
-            team=driver_info.team,
-            headshot_url=driver_info.headshot_url,
+            driver_number=session_data.driver_number,
+            first_name=driver.first_name,
+            last_name=driver.last_name,
+            team=session_data.team,
+            headshot_url=driver.headshot_url,
             laps=[
                 LapResponse(
                     lap_number=lap.lap_number or 0,
-                    time=lap.time or 0.0,
-                    speed_trap=lap.speed_trap or 0,
+                    time=lap.lap_time or 0.0,
+                    speed_trap=lap.st_speed or 0,
                     is_pit_out_lap=lap.is_pit_out_lap or False,
                     compound=lap.compound or FALLBACK_COMPOUND,
                 )

@@ -6,7 +6,6 @@ from sqlmodel import select
 from backend.db.db_utils import SessionDep
 from backend.models.driver import Driver
 from backend.models.session_driver import SessionDriver
-from backend.schemas.read_driver import DriverSessionInfo
 from backend.logging_config import logger
 
 
@@ -14,29 +13,15 @@ class DriverRepository:
     def __init__(self, session: SessionDep):
         self.session = session
 
-    def get_drivers_from_session_key(self, session_key: int) -> list[DriverSessionInfo]:
+    def get_drivers_from_session_key(self, session_key: int):
         statement = (
             select(Driver, SessionDriver)
             .join(SessionDriver)
             .where(SessionDriver.session_key == session_key)
         )
-        results = self.session.exec(statement).all()
-        return [
-            DriverSessionInfo(
-                id=driver.id,
-                driver_number=session_link.driver_number,
-                team=session_link.team,
-                first_name=driver.first_name,
-                last_name=driver.last_name,
-                name_acronym=driver.name_acronym,
-                headshot_url=driver.headshot_url,
-            )
-            for driver, session_link in results
-        ]
+        return self.session.exec(statement).all()
 
-    def get_single_driver_from_session_key(
-        self, session_key: int, driver_number: int
-    ) -> DriverSessionInfo | None:
+    def get_single_driver_from_session_key(self, session_key: int, driver_number: int):
         statement = (
             select(Driver, SessionDriver)
             .join(SessionDriver)
@@ -45,19 +30,7 @@ class DriverRepository:
                 SessionDriver.driver_number == driver_number,
             )
         )
-        result = self.session.exec(statement).first()
-        if not result:
-            return None
-        driver, session_link = result
-        return DriverSessionInfo(
-            id=driver.id,
-            driver_number=session_link.driver_number,
-            team=session_link.team,
-            first_name=driver.first_name,
-            last_name=driver.last_name,
-            name_acronym=driver.name_acronym,
-            headshot_url=driver.headshot_url,
-        )
+        return self.session.exec(statement).first()
 
     def upsert_drivers_and_links(self, session_key: int, all_drivers_data: list[dict]):
         new_drivers = 0
