@@ -15,48 +15,44 @@ from backend.ingestion.openf1_client import (
     fetch_team_color,
     map_stints_laps,
 )
-from backend.crud.event import (
-    get_existing_meeting_keys,
-    insert_meeting,
-    meeting_exists,
-)
-from backend.crud.f1session import (
-    insert_f1session,
-    fetch_latest_f1session,
-    get_incomplete_sessions,
-)
-from backend.crud.driver import upsert_drivers_and_links
-from backend.crud.lap import get_existing_laps_with_compound, bulk_upsert_laps
-from backend.crud.session_result import insert_session_results
-from backend.crud.team import get_all_team_names, get_existing_team_names, insert_team
+from backend.repositories.event import EventRepository
+from backend.repositories.f1session import F1SessionRepository
+from backend.repositories.driver import DriverRepository
+from backend.repositories.lap import LapRepository
+from backend.repositories.session_result import SessionResultRepository
+from backend.repositories.team import TeamRepository
 
 from backend.logging_config import logger
 
 
-def _add_all_meetings(session: Session) -> None:
+def _add_all_meetings(event_repo: EventRepository) -> None:
     meetings = fetch_all_meetings()
-    existing = get_existing_meeting_keys(session)
+    existing = event_repo.get_existing_meeting_keys()
     added = 0
     for meeting in meetings:
         if meeting.get("meeting_key") in existing:
             continue
-        insert_meeting(session, meeting)
+        event_repo.insert_meeting(meeting)
         added += 1
     logger.info(f"Meetings: {added} new, {len(existing)} existing")
 
 
-def _ensure_meeting(session: Session, meeting_key: int) -> None:
-    if meeting_exists(session, meeting_key):
+def _ensure_meeting(event_repo: EventRepository, session: Session, meeting_key: int) -> None:
+    if event_repo.meeting_exists(meeting_key):
         return
     meeting_data = fetch_meeting(meeting_key)
     if not meeting_data:
         logger.warning(f"No meeting data for meeting_key={meeting_key}")
         return
-    insert_meeting(session, meeting_data)
+    event_repo.insert_meeting(meeting_data)
     session.flush()
 
 
-def _add_all_laps_for_session(session: Session, session_key: int) -> None:
+def _add_all_laps_for_session(
+    driver_repo: DriverRepository,
+    lap_repo: LapRepository,
+    session_key: int,
+) -> None:
     logger.info("  Fetching laps/stints/drivers from API...")
 
     all_laps_data = fetch_laps(session_key)
@@ -86,10 +82,10 @@ def _add_all_laps_for_session(session: Session, session_key: int) -> None:
             stints_by_driver[dn].append(stint)
 
     # Ensure drivers and session links exist (mutates all_drivers_data with driver_id)
-    upsert_drivers_and_links(session, session_key, all_drivers_data)
+    driver_repo.upsert_drivers_and_links(session_key, all_drivers_data)
 
     # Fetch existing laps that already have a compound
-    existing_laps = get_existing_laps_with_compound(session, session_key)
+    existing_laps = lap_repo.get_existing_laps_with_compound(session_key)
 
     # Build upsert map
     upsert_map: dict[tuple, dict] = {}
@@ -124,25 +120,27 @@ def _add_all_laps_for_session(session: Session, session_key: int) -> None:
                 "compound": compound,
             }
 
-    count = bulk_upsert_laps(session, list(upsert_map.values()))
+    count = lap_repo.bulk_upsert_laps(list(upsert_map.values()))
     logger.info(f"  Laps: {count} upserted")
 
 
-def _add_session_result(session: Session, session_key: int) -> None:
+def _add_session_result(
+    session_result_repo: SessionResultRepository, session_key: int
+) -> None:
     data = fetch_session_result(session_key)
-    insert_session_results(session, session_key, data)
+    session_result_repo.insert_session_results(session_key, data)
 
 
-def _add_teams_colors(session: Session) -> None:
+def _add_teams_colors(team_repo: TeamRepository, session: Session) -> None:
     try:
-        all_teams = get_all_team_names(session)
-        existing = get_existing_team_names(session)
+        all_teams = team_repo.get_all_team_names()
+        existing = team_repo.get_existing_team_names()
         for team_name in all_teams:
             if not team_name or team_name in existing:
                 continue
             color = fetch_team_color(team_name)
             if color:
-                insert_team(session, team_name, color)
+                team_repo.insert_team(team_name, color)
         session.commit()
     except Exception as e:
         session.rollback()
@@ -155,9 +153,16 @@ def update_db() -> None:
     """
     logger.info("Starting database update...")
     with Session(engine) as session:
+        event_repo = EventRepository(session)
+        f1session_repo = F1SessionRepository(session)
+        driver_repo = DriverRepository(session)
+        lap_repo = LapRepository(session)
+        session_result_repo = SessionResultRepository(session)
+        team_repo = TeamRepository(session)
+
         date_start = None
         try:
-            latest_session = fetch_latest_f1session(session)
+            latest_session = f1session_repo.fetch_latest_f1session()
 
             if latest_session:
                 logger.info(f"Latest session in DB: {latest_session.date}")
@@ -165,8 +170,8 @@ def update_db() -> None:
             else:
                 logger.info("Empty database — full population")
                 date_start = None
-                _add_all_meetings(session)
-                _add_teams_colors(session)
+                _add_all_meetings(event_repo)
+                _add_teams_colors(team_repo, session)
             session.commit()
         except Exception as e:
             logger.error(f"Failed to fetch data: {e}")
@@ -182,16 +187,16 @@ def update_db() -> None:
             try:
                 with session.begin():
                     logger.info(f"[{i}/{total}] {location} — {session_name} (key={session_key})")
-                    _ensure_meeting(session, f1session["meeting_key"])
-                    insert_f1session(session, f1session)
-                    _add_all_laps_for_session(session, session_key)
-                    _add_session_result(session, session_key)
+                    _ensure_meeting(event_repo, session, f1session["meeting_key"])
+                    f1session_repo.insert_f1session(f1session)
+                    _add_all_laps_for_session(driver_repo, lap_repo, session_key)
+                    _add_session_result(session_result_repo, session_key)
             except Exception:
                 logger.error(f"[{i}/{total}] FAILED session {session_key}", exc_info=True)
                 break
 
         # Backfill: retry sessions that have no lap data yet
-        incomplete = get_incomplete_sessions(session)
+        incomplete = f1session_repo.get_incomplete_sessions()
 
         # Close the implicit transaction from the query above so session.begin() works
         session.rollback()
@@ -205,8 +210,8 @@ def update_db() -> None:
                             f"  [{i}/{len(incomplete)}] {f1sess.location} — "
                             f"{f1sess.session_name} (key={f1sess.session_key})"
                         )
-                        _add_all_laps_for_session(session, f1sess.session_key)
-                        _add_session_result(session, f1sess.session_key)
+                        _add_all_laps_for_session(driver_repo, lap_repo, f1sess.session_key)
+                        _add_session_result(session_result_repo, f1sess.session_key)
                 except Exception:
                     logger.error(
                         f"  [{i}/{len(incomplete)}] FAILED backfill {f1sess.session_key}",
