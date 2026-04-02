@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from backend.api import sessions, events, drivers, laps, admin
+from backend.routers import sessions, events, drivers, laps, admin
 from backend.db.database import create_db_and_tables
 
 BASE_DIR = Path(__file__).resolve().parent.parent
