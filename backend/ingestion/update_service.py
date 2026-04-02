@@ -37,7 +37,7 @@ def _add_all_meetings(event_repo: EventRepository) -> None:
     logger.info(f"Meetings: {added} new, {len(existing)} existing")
 
 
-def _ensure_meeting(event_repo: EventRepository, session: Session, meeting_key: int) -> None:
+def _ensure_meeting(event_repo: EventRepository, meeting_key: int) -> None:
     if event_repo.meeting_exists(meeting_key):
         return
     meeting_data = fetch_meeting(meeting_key)
@@ -45,7 +45,7 @@ def _ensure_meeting(event_repo: EventRepository, session: Session, meeting_key: 
         logger.warning(f"No meeting data for meeting_key={meeting_key}")
         return
     event_repo.insert_meeting(meeting_data)
-    session.flush()
+    event_repo.flush()
 
 
 def _add_all_laps_for_session(
@@ -131,7 +131,7 @@ def _add_session_result(
     session_result_repo.insert_session_results(session_key, data)
 
 
-def _add_teams_colors(team_repo: TeamRepository, session: Session) -> None:
+def _add_teams_colors(team_repo: TeamRepository) -> None:
     try:
         all_teams = team_repo.get_all_team_names()
         existing = team_repo.get_existing_team_names()
@@ -141,9 +141,9 @@ def _add_teams_colors(team_repo: TeamRepository, session: Session) -> None:
             color = fetch_team_color(team_name)
             if color:
                 team_repo.insert_team(team_name, color)
-        session.commit()
+        team_repo.commit()
     except Exception as e:
-        session.rollback()
+        team_repo.rollback()
         logger.error(f"Error while adding teams to the DB: {e}")
 
 
@@ -171,7 +171,7 @@ def update_db() -> None:
                 logger.info("Empty database — full population")
                 date_start = None
                 _add_all_meetings(event_repo)
-                _add_teams_colors(team_repo, session)
+                _add_teams_colors(team_repo)
             session.commit()
         except Exception as e:
             logger.error(f"Failed to fetch data: {e}")
@@ -187,7 +187,7 @@ def update_db() -> None:
             try:
                 with session.begin():
                     logger.info(f"[{i}/{total}] {location} — {session_name} (key={session_key})")
-                    _ensure_meeting(event_repo, session, f1session["meeting_key"])
+                    _ensure_meeting(event_repo, f1session["meeting_key"])
                     f1session_repo.insert_f1session(f1session)
                     _add_all_laps_for_session(driver_repo, lap_repo, session_key)
                     _add_session_result(session_result_repo, session_key)

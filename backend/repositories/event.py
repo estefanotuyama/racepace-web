@@ -5,7 +5,6 @@ from sqlmodel import select
 
 from backend.db.db_utils import SessionDep
 from backend.models.events import Event
-from backend.models.teams import Teams
 
 
 class EventRepository:
@@ -18,10 +17,6 @@ class EventRepository:
     def get_available_years(self) -> list[int]:
         years = self.session.exec(select(Event.year)).all()
         return sorted(set(years))
-
-    def get_teams(self) -> dict[str, str]:
-        teams = self.session.exec(select(Teams)).all()
-        return {team.name: team.color for team in teams}
 
     def get_existing_meeting_keys(self) -> set[int]:
         return set(self.session.exec(select(Event.meeting_key)).all())
@@ -40,6 +35,9 @@ class EventRepository:
 
     def meeting_exists(self, meeting_key: int) -> bool:
         return self.session.get(Event, meeting_key) is not None
+
+    def flush(self) -> None:
+        self.session.flush()
 
 
 EventRepoDep = Annotated[EventRepository, Depends()]

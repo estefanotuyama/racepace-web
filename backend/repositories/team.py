@@ -16,12 +16,22 @@ class TeamRepository:
     def get_all_team_names(self) -> list[str]:
         return list(self.session.exec(select(distinct(SessionDriver.team))))
 
+    def get_teams(self) -> dict[str, str]:
+        teams = self.session.exec(select(Teams)).all()
+        return {team.name: team.color for team in teams}
+
     def get_existing_team_names(self) -> set[str]:
         return set(self.session.exec(select(Teams.name)))
 
     def insert_team(self, name: str, color: str) -> None:
         team = Teams(name=name, color=color)
         self.session.add(team)
+
+    def commit(self) -> None:
+        self.session.commit()
+
+    def rollback(self) -> None:
+        self.session.rollback()
 
 
 TeamRepoDep = Annotated[TeamRepository, Depends()]

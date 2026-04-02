@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 
 from backend.repositories.driver import DriverRepoDep
 from backend.repositories.lap import LapRepoDep
@@ -15,12 +15,14 @@ class LapService:
 
     def get_driver_laps(
         self, session_key: int, driver_number: int
-    ) -> DriverLapsResponse | None:
+    ) -> DriverLapsResponse:
         result = self.driver_repo.get_single_driver_from_session_key(
             session_key, driver_number
         )
         if not result:
-            return None
+            raise HTTPException(
+                status_code=404, detail="Driver not found in session"
+            )
 
         driver, session_data = result
         laps = self.lap_repo.get_laps_for_driver(driver.id, session_key)
