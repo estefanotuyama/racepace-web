@@ -9,5 +9,5 @@ def get_deepseek():
     return ChatDeepSeek(
         model="deepseek-chat",
         temperature=0.0,
-        api_key=os.environ.get("DEEP_SEEK_API_KEY"),
+        api_key=os.environ.get("DEEPSEEK_API_KEY"),
     )

@@ -3,7 +3,7 @@ import asyncio
 from sqlalchemy import text
 from sqlmodel import Session
 
-from backend.ai.racepace_agent.planner.schema import PostgresQuery, QueryResult
+from backend.ai.pitwall.planner.schema import PostgresQuery, QueryResult
 from backend.db.database import engine
 
 

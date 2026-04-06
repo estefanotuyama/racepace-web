@@ -1,11 +1,11 @@
-from backend.ai.racepace_agent.planner.prompt import PLANNER_SYSTEM_PROMPT
-from backend.ai.racepace_agent.planner.schema import PostgresQuery, PlannerOutput
-from backend.ai.racepace_agent.state import State
-from backend.ai.racepace_agent.tools import execute_queries_parallel
+from backend.ai.pitwall.planner.prompt import PLANNER_SYSTEM_PROMPT
+from backend.ai.pitwall.planner.schema import PostgresQuery, PlannerOutput
+from backend.ai.pitwall.state import PitWallChatState
+from backend.ai.pitwall.tools import execute_queries_parallel
 from backend.ai.utils import get_deepseek
 
 
-async def plan_queries(state: State) -> State:
+async def plan_queries(state: PitWallChatState) -> PitWallChatState:
     user_query = state.user_query
 
     llm = get_deepseek().with_structured_output(PlannerOutput)
@@ -22,14 +22,14 @@ async def plan_queries(state: State) -> State:
         "planner_queries": response.queries,
     }
 
-async def decide_next_node(state: State) -> str:
+async def decide_next_node(state: PitWallChatState) -> str:
     """Caso is_valid = True, continuamos. Caso não, fim."""
     if state.is_valid:
             return "query_executor"
     return "end"
 
 
-async def paralel_query_executor(state: State):
+async def paralel_query_executor(state: PitWallChatState):
     queries = state.planner_queries
 
     result = await execute_queries_parallel(queries)

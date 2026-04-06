@@ -2,9 +2,8 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from backend.routers import sessions, events, drivers, laps, admin
+from backend.routers import sessions, events, drivers, laps, admin, pitwall_ai
 from backend.db.database import create_db_and_tables
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,6 +14,7 @@ app.include_router(sessions.router)
 app.include_router(drivers.router)
 app.include_router(laps.router)
 app.include_router(admin.router)
+app.include_router(pitwall_ai.router)
 
 origins = [
     "https://f1racepace.vercel.app",
